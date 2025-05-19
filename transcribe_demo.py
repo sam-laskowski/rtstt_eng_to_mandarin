@@ -1,5 +1,7 @@
 #! python3.7
 
+# run with python transcribe_demo.py --model medium --non_english
+
 import argparse
 import os
 import numpy as np
@@ -12,6 +14,9 @@ from queue import Queue
 from time import sleep
 from sys import platform
 
+from pypinyin import pinyin, Style
+from googletrans import Translator
+import asyncio
 
 def main():
     parser = argparse.ArgumentParser()
@@ -88,12 +93,22 @@ def main():
     # We could do this manually but SpeechRecognizer provides a nice helper.
     recorder.listen_in_background(source, record_callback, phrase_time_limit=record_timeout)
 
+    async def translate_text(text):
+        """
+        Translate the text using Google Translate.
+        text: The text to translate.
+        """
+        async with Translator() as translator:
+            result = await translator.translate(text, src='zh-cn', dest='en')
+        return result
+
     # Cue the user that we're ready to go.
     print("Model loaded.\n")
+    translator = Translator()
 
     while True:
         try:
-            now = datetime.utcnow()
+            now = datetime.now()
             # Pull raw recorded audio from the queue.
             if not data_queue.empty():
                 phrase_complete = False
@@ -118,8 +133,18 @@ def main():
                 audio_np = np.frombuffer(phrase_bytes, dtype=np.int16).astype(np.float32) / 32768.0
 
                 # Read the transcription.
-                result = audio_model.transcribe(audio_np, fp16=torch.cuda.is_available())
+                result = audio_model.transcribe(audio_np, fp16=torch.cuda.is_available(), language="zh")
                 text = result['text'].strip()
+
+                if text:
+                    pinyin_result = pinyin(text)
+                    pinyin_str = ' '.join(item[0] for item in pinyin_result)
+                    # Use Google Translate to get the English translation of the text.
+                    translation = asyncio.run(translate_text(text)).text
+                else:
+                    pinyin_str = ""
+                    translation = ""
+
 
                 # If we detected a pause between recordings, add a new item to our transcription.
                 # Otherwise edit the existing one.
@@ -131,8 +156,11 @@ def main():
                 # Clear the console to reprint the updated transcription.
                 os.system('cls' if os.name=='nt' else 'clear')
                 for line in transcription:
-                    print(line)
-                # Flush stdout.
+                    print(f"Chinese: {line}")
+                if pinyin_str:
+                    print(f"\nPinyin: {pinyin_str}")
+                if translation:
+                    print(f"English: {translation}")
                 print('', end='', flush=True)
             else:
                 # Infinite loops are bad for processors, must sleep.
