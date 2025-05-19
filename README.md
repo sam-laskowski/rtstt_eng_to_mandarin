@@ -5,9 +5,11 @@
 This is a demo of real time speech to text with OpenAI's Whisper model. It works by constantly recording audio in a thread and concatenating the raw bytes over multiple recordings.
 
 To install dependencies simply run
+
 ```
 pip install -r requirements.txt
 ```
+
 in an environment of your choosing.
 
 Whisper also requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be installed on your system, which is available from most package managers:
@@ -32,3 +34,13 @@ scoop install ffmpeg
 For more information on Whisper please see https://github.com/openai/whisper
 
 The code in this repository is public domain.
+
+# Forked changes
+
+run this command
+
+```
+python transcribe_demo.py --model medium --non_english
+```
+
+Speaking in mandarin will now show the characters, the pinyin and the translate into english using google translate.
