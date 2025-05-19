@@ -37,7 +37,7 @@ The code in this repository is public domain.
 
 # Forked changes
 
-if one mac make sure to also install portaudio
+if on mac make sure to also install portaudio
 
 ```
 brew install portaudio
